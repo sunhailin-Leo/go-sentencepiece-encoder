@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/evan176/sentencepiecego"
+	"github.com/sunhailin-Leo/sentencepiecego"
 )
 
 const minScore float32 = -math.MaxFloat32
