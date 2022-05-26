@@ -1,6 +1,7 @@
 package sentencepiece
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -366,4 +367,17 @@ func firstNChars(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+func TestOwnTokenizationSPM(t *testing.T) {
+	sp, err := NewSentencepieceFromFile("/Users/sunhailin/Desktop/GoProjects/src/algorithm-oversea-model-service/static/th.wiki.bpe.op25000.model", false)
+	if err != nil {
+		t.Errorf("Unable to create sentencepiece")
+		return
+	}
+	var tokens []string
+	for _, v := range sp.Tokenize("23 หมู่8 ต.สระแก้ว เมืองกำแพงเพชร กำแพงเพชร 62000เมืองกำแพงเพชรกำแพงเพชร") {
+		tokens = append(tokens, v.Text)
+	}
+	fmt.Println(tokens)
 }

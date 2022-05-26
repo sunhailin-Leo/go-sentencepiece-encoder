@@ -9,7 +9,10 @@ import (
 
 // NewSentencepieceFromFile creates sentencepiece from file.
 func NewSentencepieceFromFile(filename string, lowercase bool) (Sentencepiece, error) {
-	s := NewEmptySentencepiece(lowercase)
+	s, objErr := NewEmptySentencepiece(filename, lowercase)
+	if objErr != nil {
+		return s, objErr
+	}
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return s, fmt.Errorf("Unable to read file : %s, err %v", filename, err)

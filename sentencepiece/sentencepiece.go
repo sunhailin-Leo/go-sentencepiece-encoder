@@ -6,6 +6,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/evan176/sentencepiecego"
 )
 
 const minScore float32 = -math.MaxFloat32
@@ -64,16 +66,28 @@ type Sentencepiece struct {
 	lowercase    bool
 	unknown      int32
 	controlWords map[string]int32
+	tokenToId    map[string]int32
+	idToToken    map[int32]string
+	spmModel     *sentencepiecego.SentencePieceProcessor
 }
 
 // NewEmptySentencepiece creates an empty sentencepiece model
-func NewEmptySentencepiece(lowercase bool) Sentencepiece {
+func NewEmptySentencepiece(filename string, lowercase bool) (Sentencepiece, error) {
+	// SpmModel
+	spmModel, err := sentencepiecego.Load(filename)
+	if err != nil {
+		return Sentencepiece{}, err
+	}
+
 	return Sentencepiece{
 		root:         newTrieNode("", 0),
 		lowercase:    lowercase,
 		unknown:      0,
 		controlWords: make(map[string]int32),
-	}
+		tokenToId:    make(map[string]int32),
+		idToToken:    make(map[int32]string),
+		spmModel:     spmModel,
+	}, nil
 }
 
 // SetUnknownIndex sets the index for the unknown id
@@ -122,7 +136,59 @@ func (s *Sentencepiece) TokenizeToIDs(text string) []int32 {
 	return ids
 }
 
+// TokenToId Single token to Id
+func (s *Sentencepiece) TokenToId(word string) (int32, bool) {
+	v, ok := s.tokenToId[word]
+	return v, ok
+}
+
+// IdToToken Single Id to token
+func (s *Sentencepiece) IdToToken(id int32) (string, bool) {
+	v, ok := s.idToToken[id]
+	return v, ok
+}
+
+// TokensToIds Tokens Array to Ids Array
+func (s *Sentencepiece) TokensToIds(tokens []string) []int32 {
+	ids := make([]int32, len(tokens))
+	for i, token := range tokens {
+		tokenId, isOK := s.TokenToId(token)
+		if isOK {
+			ids[i] = tokenId
+		} else {
+			ids[i] = -1
+		}
+	}
+	return ids
+}
+
+// IdsToTokens Ids Array to Tokens Array
+func (s *Sentencepiece) IdsToTokens(ids []int32) []string {
+	tokens := make([]string, len(ids))
+	for i, id := range ids {
+		idToken, isOK := s.IdToToken(id)
+		if isOK {
+			tokens[i] = idToken
+		} else {
+			tokens[i] = unknown
+		}
+	}
+	return tokens
+}
+
+// EncodeBySPM encode text by spm Model
+func (s *Sentencepiece) EncodeBySPM(text string) ([]int, error) {
+	return s.spmModel.Encode(text)
+}
+
+// Free release spmModel
+func (s *Sentencepiece) Free() {
+	s.spmModel.Free()
+}
+
 func (s *Sentencepiece) insert(word string, score float32, index int32) {
+	s.tokenToId[word] = index
+	s.idToToken[index] = word
 	_, size := utf8.DecodeLastRuneInString(word)
 	charCount := len(word)
 	node := &s.root
